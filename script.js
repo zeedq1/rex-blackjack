@@ -3,26 +3,36 @@ const SUITS = ['♠','♥','♦','♣'];
 const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
 const ALL_CHIPS = [
-  { val: 1,     label: '1',   cls: 'chip-1',     sub: 'WHITE'  },
-  { val: 10,    label: '10',  cls: 'chip-10',    sub: 'BLUE'   },
-  { val: 50,    label: '50',  cls: 'chip-50',    sub: 'GREEN'  },
-  { val: 100,   label: '100', cls: 'chip-100',   sub: 'RED'    },
-  { val: 500,   label: '500', cls: 'chip-500',   sub: 'PURPLE' },
-  { val: 1000,  label: '1K',  cls: 'chip-1000',  sub: 'GOLD'   },
-  { val: 5000,  label: '5K',  cls: 'chip-5000',  sub: 'PINK'   },
-  { val: 25000, label: '25K', cls: 'chip-25000', sub: 'CROWN'  },
+  { val: 1,          label: '1',    cls: 'chip-1',       sub: 'WHITE' },
+  { val: 10,         label: '10',   cls: 'chip-10',      sub: 'BLUE' },
+  { val: 50,         label: '50',   cls: 'chip-50',      sub: 'GREEN' },
+  { val: 100,        label: '100',  cls: 'chip-100',     sub: 'RED' },
+  { val: 500,        label: '500',  cls: 'chip-500',     sub: 'PURPLE' },
+  { val: 1000,       label: '1K',   cls: 'chip-1000',    sub: 'GOLD' },
+  { val: 5000,       label: '5K',   cls: 'chip-5000',    sub: 'PINK' },
+  { val: 25000,      label: '25K',  cls: 'chip-25000',   sub: 'CROWN' },
+  { val: 100000,     label: '100K', cls: 'chip-100k',    sub: 'BLACK' },
+  { val: 500000,     label: '500K', cls: 'chip-500k',    sub: 'SAPPHIRE' },
+  { val: 1000000,    label: '1M',   cls: 'chip-1m',      sub: 'MILLION' },
+  { val: 5000000,    label: '5M',   cls: 'chip-5m',      sub: 'PLATINUM' },
+  { val: 10000000,   label: '10M',  cls: 'chip-10m',     sub: 'ROYAL' },
+  { val: 50000000,   label: '50M',  cls: 'chip-50m',     sub: 'DIAMOND' },
+  { val: 100000000,  label: '100M', cls: 'chip-100m',    sub: 'ELITE' },
+  { val: 500000000,  label: '500M', cls: 'chip-500m',    sub: 'ULTRA' },
+  { val: 1000000000, label: '1B',   cls: 'chip-1b',      sub: 'BILLION' },
+  { val: 5000000000, label: '5B',   cls: 'chip-5b',      sub: 'EMPEROR' },
+  { val: 10000000000,label: '10B',  cls: 'chip-10b',     sub: 'TITAN' },
+  { val: 50000000000,label: '50B',  cls: 'chip-50b',     sub: 'OMEGA' },
+  { val: 100000000000,label: '100B', cls: 'chip-100b',   sub: 'REX' },
 ];
 
 // chip unlocks when balance >= threshold
 const CHIP_UNLOCK = {
-  1:     0,
-  10:    0,
-  50:    0,
-  100:   500,
-  500:   2500,
-  1000:  5000,
-  5000:  20000,
-  25000: 75000,
+  1: 0, 10: 0, 50: 0, 100: 500, 500: 2500, 1000: 5000, 5000: 20000, 25000: 75000,
+  100000: 250000, 500000: 750000, 1000000: 2500000, 5000000: 7500000,
+  10000000: 15000000, 50000000: 75000000, 100000000: 150000000,
+  500000000: 750000000, 1000000000: 2500000000, 5000000000: 7500000000,
+  10000000000: 15000000000, 50000000000: 75000000000, 100000000000: 100000000000
 };
 
 // ─── STATE ──────────────────────────────────────────────────────────────────
@@ -110,11 +120,26 @@ function clearBet() {
 function fmt(n) { return '$' + n.toLocaleString(); }
 
 function updateBetDisplay() {
-  document.getElementById('betDisplay').textContent = fmt(bet);
+  const el = document.getElementById('betDisplay');
+  el.textContent = fmt(bet);
+  if (animationsEnabled) {
+    el.classList.remove('chip-added');
+    void el.offsetWidth;
+    el.classList.add('chip-added');
+  }
 }
 
 function updateBalanceDisplay() {
-  document.getElementById('balanceDisplay').textContent = fmt(balance);
+  const el = document.getElementById('balanceDisplay');
+  const old = Number(el.dataset.value || balance);
+  el.textContent = fmt(balance);
+  el.dataset.value = balance;
+
+  if (animationsEnabled && old !== balance) {
+    el.classList.remove(balance > old ? 'drop' : 'bump');
+    void el.offsetWidth;
+    el.classList.add(balance > old ? 'bump' : 'drop');
+  }
   renderChips();
 }
 
@@ -156,8 +181,16 @@ function renderHands() {
   const dc = document.getElementById('dealerCards');
   pc.innerHTML = '';
   dc.innerHTML = '';
-  for (const c of playerHand) pc.appendChild(cardEl(c));
-  for (const c of dealerHand) dc.appendChild(cardEl(c));
+  for (const c of playerHand) {
+    const el = cardEl(c);
+    if (animationsEnabled) el.classList.add('deal-in');
+    pc.appendChild(el);
+  }
+  for (const c of dealerHand) {
+    const el = cardEl(c);
+    if (animationsEnabled) el.classList.add('deal-in');
+    dc.appendChild(el);
+  }
 
   document.getElementById('playerScore').textContent = handValue(playerHand) || '-';
   const visible = dealerHand.filter(c => !c.hidden);
@@ -179,6 +212,7 @@ function deal() {
   gamePhase = 'playing';
   setButtons('playing');
   renderHands();
+syncCheatToggles();
 
   document.getElementById('doubleBtn').disabled = balance < bet;
 
@@ -210,6 +244,10 @@ function stand() {
   if (gamePhase !== 'playing') return;
   dealerHand[1].hidden = false;
   renderHands();
+  if (animationsEnabled) {
+    const cards = document.getElementById('dealerCards').children;
+    if (cards[1]) cards[1].classList.add('flip-in');
+  }
   dealerPlay();
 }
 
@@ -339,7 +377,13 @@ function addHistory(label) {
 // ─── CHEAT PANEL ────────────────────────────────────────────────────────────
 const KONAMI    = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
 let konamiIdx   = 0;
-let cheatActive = { forceWin: false, forceBlackjack: false };
+let cheatActive = {
+  forceWin: false,
+  forceBlackjack: false,
+  dealerBust: false,
+  revealDealer: false
+};
+let animationsEnabled = true;
 
 // Konami Code
 document.addEventListener('keydown', e => {
@@ -403,37 +447,82 @@ function cheat_customAdd() {
   document.getElementById('cheatAmountInput').value = '';
 }
 
+function syncCheatToggles() {
+  const map = {
+    forceWin: 'forceWinToggle',
+    forceBlackjack: 'forceBlackjackToggle',
+    dealerBust: 'dealerBustToggle',
+    revealDealer: 'revealToggle'
+  };
+  for (const [key, id] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('active', !!cheatActive[key]);
+  }
+}
+
+function toggleCheat(type) {
+  if (!(type in cheatActive)) return;
+
+  // Force-win and force-blackjack are mutually exclusive.
+  if (type === 'forceWin' && !cheatActive.forceWin) cheatActive.forceBlackjack = false;
+  if (type === 'forceBlackjack' && !cheatActive.forceBlackjack) cheatActive.forceWin = false;
+
+  cheatActive[type] = !cheatActive[type];
+  syncCheatToggles();
+
+  const labels = {
+    forceWin: 'FORCE WIN',
+    forceBlackjack: 'FORCE BLACKJACK',
+    dealerBust: 'DEALER BUST',
+    revealDealer: 'REVEAL HOLE CARD'
+  };
+  cheatFb(`${cheatActive[type] ? '✓ Enabled' : '✓ Disabled'} ${labels[type]}`);
+}
+
+function toggleAnimations() {
+  animationsEnabled = !animationsEnabled;
+  document.body.classList.toggle('no-animations', !animationsEnabled);
+  const btn = document.getElementById('animationsToggle');
+  if (btn) btn.classList.toggle('active', animationsEnabled);
+  cheatFb(`${animationsEnabled ? '✓ Animations enabled' : '✓ Animations disabled'}`);
+}
+
 function cheat_forceWin() {
-  cheatActive.forceWin       = true;
+  cheatActive.forceWin = true;
   cheatActive.forceBlackjack = false;
-  cheatFb('✓ Next hand forced WIN');
+  syncCheatToggles();
+  cheatFb('✓ FORCE WIN enabled');
 }
 
 function cheat_forceBlackjack() {
   cheatActive.forceBlackjack = true;
-  cheatActive.forceWin       = false;
-  cheatFb('✓ Next hand forced BLACKJACK');
+  cheatActive.forceWin = false;
+  syncCheatToggles();
+  cheatFb('✓ FORCE BLACKJACK enabled');
 }
 
-function cheat_dealerBust() {
-  if (gamePhase !== 'playing') { cheatFb('No active hand.', '#f87171'); return; }
-  dealerHand[1].hidden = false;
+function cheat_dealerBustNow() {
+  if (gamePhase !== 'playing') return;
+  if (dealerHand[1]) dealerHand[1].hidden = false;
   while (handValue(dealerHand) <= 21) dealerHand.push({ suit: '♠', rank: 'K' });
   renderHands();
   endRound('win');
-  cheatFb('✓ Dealer busted.');
-  closeCheat();
+}
+
+function cheat_dealerBust() {
+  cheatActive.dealerBust = !cheatActive.dealerBust;
+  syncCheatToggles();
+  cheatFb(`✓ Dealer bust ${cheatActive.dealerBust ? 'enabled' : 'disabled'}`);
 }
 
 function cheat_revealDealer() {
-  if (dealerHand.length < 2) { cheatFb('No active hand.', '#f87171'); return; }
-  dealerHand[1].hidden = false;
-  renderHands();
-  setTimeout(() => {
-    if (gamePhase === 'playing') { dealerHand[1].hidden = true; renderHands(); }
-  }, 3000);
-  cheatFb('✓ Hole card revealed for 3s');
-  closeCheat();
+  cheatActive.revealDealer = !cheatActive.revealDealer;
+  syncCheatToggles();
+  if (gamePhase === 'playing' && dealerHand[1]) {
+    dealerHand[1].hidden = !cheatActive.revealDealer;
+    renderHands();
+  }
+  cheatFb(`✓ Hole card ${cheatActive.revealDealer ? 'revealed' : 'hidden'}`);
 }
 
 function cheat_clearHistory() {
@@ -445,7 +534,12 @@ function cheat_clearHistory() {
 function cheat_reset() {
   balance     = 2500;
   bet         = 0;
-  cheatActive = { forceWin: false, forceBlackjack: false };
+  cheatActive = {
+    forceWin: false,
+    forceBlackjack: false,
+    dealerBust: false,
+    revealDealer: false
+  };
   history     = [];
   document.getElementById('historyRow').innerHTML = '';
   updateBalanceDisplay();
@@ -456,6 +550,7 @@ function cheat_reset() {
     setButtons('betting');
     renderHands();
   }
+  syncCheatToggles();
   cheatFb('✓ Hard reset — back to $2,500');
 }
 
@@ -469,7 +564,6 @@ deal = function () {
     deck       = shuffleDeck([...buildDeck(), ...buildDeck()]);
     playerHand = [{ suit: '♠', rank: 'A' }, { suit: '♦', rank: 'K' }];
     dealerHand = [drawCard(), { ...drawCard(), hidden: true }];
-    cheatActive.forceBlackjack = false;
     gamePhase  = 'playing';
     setButtons('playing');
     renderHands();
@@ -485,15 +579,35 @@ deal = function () {
     deck       = shuffleDeck([...buildDeck(), ...buildDeck()]);
     playerHand = [{ suit: '♥', rank: 'K' }, { suit: '♦', rank: 'Q' }];
     dealerHand = [{ suit: '♣', rank: '9' }, { ...{ suit: '♠', rank: '6' }, hidden: true }];
-    cheatActive.forceWin = false;
     gamePhase  = 'playing';
     setButtons('playing');
     document.getElementById('doubleBtn').disabled = balance < bet;
     renderHands();
+    if (cheatActive.revealDealer && dealerHand[1]) {
+      dealerHand[1].hidden = false;
+      renderHands();
+    }
+    if (cheatActive.dealerBust) {
+      setTimeout(() => {
+        if (gamePhase === 'playing') {
+          cheat_dealerBustNow();
+        }
+      }, 350);
+    }
     setMessage('Cheat active — you have 20. Hit or Stand?', 'info');
     return;
   }
   _origDeal();
+
+  if (cheatActive.revealDealer && dealerHand[1]) {
+    dealerHand[1].hidden = false;
+    renderHands();
+  }
+  if (cheatActive.dealerBust) {
+    setTimeout(() => {
+      if (gamePhase === 'playing') cheat_dealerBustNow();
+    }, 350);
+  }
 };
 
 // ─── INIT ───────────────────────────────────────────────────────────────────

@@ -80,20 +80,36 @@
       <button class="cheat-btn" onclick="cheat_addMoney(100000)">+$100,000<span class="cheat-desc">big bank</span></button>
       <button class="cheat-btn" onclick="cheat_addMoney(1000000)">+$1,000,000<span class="cheat-desc">millionaire mode</span></button>
       <button class="cheat-btn" onclick="cheat_setMoney(999999999)">MAX BALANCE<span class="cheat-desc">infinite wealth</span></button>
-      <button class="cheat-btn" onclick="cheat_forceWin()">FORCE WIN<span class="cheat-desc">next hand auto-wins</span></button>
-      <button class="cheat-btn" onclick="cheat_forceBlackjack()">FORCE BJ<span class="cheat-desc">next hand = blackjack</span></button>
-      <button class="cheat-btn" onclick="cheat_dealerBust()">DEALER BUST<span class="cheat-desc">dealer draws till bust</span></button>
-      <button class="cheat-btn" onclick="cheat_revealDealer()">SEE HOLE CARD<span class="cheat-desc">peek dealer's hidden</span></button>
+      <button class="cheat-toggle" id="forceWinToggle" onclick="toggleCheat('forceWin')">
+        <span><b>FORCE WIN</b><small>next hand auto-wins</small></span><i class="toggle-switch"><em></em></i>
+      </button>
+      <button class="cheat-toggle" id="forceBlackjackToggle" onclick="toggleCheat('forceBlackjack')">
+        <span><b>FORCE BJ</b><small>next hand = blackjack</small></span><i class="toggle-switch"><em></em></i>
+      </button>
+      <button class="cheat-toggle" id="dealerBustToggle" onclick="toggleCheat('dealerBust')">
+        <span><b>DEALER BUST</b><small>next active hand wins</small></span><i class="toggle-switch"><em></em></i>
+      </button>
+      <button class="cheat-toggle" id="revealToggle" onclick="toggleCheat('revealDealer')">
+        <span><b>REVEAL HOLE</b><small>keep hidden card visible</small></span><i class="toggle-switch"><em></em></i>
+      </button>
       <button class="cheat-btn" onclick="cheat_clearHistory()">WIPE HISTORY<span class="cheat-desc">clean record</span></button>
       <button class="cheat-btn red-cheat" onclick="cheat_reset()">HARD RESET<span class="cheat-desc">back to $2,500</span></button>
     </div>
 
+    <div class="cheat-options">
+      <div class="cheat-option">
+        <span><b>TABLE ANIMATIONS</b><small>cards, chips & win effects</small></span>
+        <button class="mini-toggle active" id="animationsToggle" onclick="toggleAnimations()"><i></i></button>
+      </div>
+    </div>
+
     <div class="cheat-custom-row">
-      <input class="cheat-input" id="cheatAmountInput" type="number" placeholder="CUSTOM $" min="1">
+      <input class="cheat-input" id="cheatAmountInput" type="number" placeholder="CUSTOM $" min="1" max="100000000000" step="1">
       <button class="cheat-btn" style="flex-shrink:0;padding:10px 14px;" onclick="cheat_customAdd()">ADD</button>
     </div>
 
     <div class="cheat-feedback" id="cheatFeedback"></div>
+    <div class="cheat-hint">Toggles stay active until switched off or reset.</div>
   </div>
 </div>
 
