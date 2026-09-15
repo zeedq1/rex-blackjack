@@ -11,6 +11,7 @@
 
 <header>
   <div class="brand">REX BLACKJACK</div>
+  <button class="settings-open" onclick="openSettings()" aria-label="Open settings">⚙ SETTINGS</button>
   <div class="balance-display">
     <div class="balance-label">Balance</div>
     <div class="balance-amount" id="balanceDisplay">$2,500</div>
@@ -38,6 +39,7 @@
       <button class="btn btn-secondary" id="hitBtn"    onclick="hit()"        disabled>Hit</button>
       <button class="btn btn-secondary" id="standBtn"  onclick="stand()"      disabled>Stand</button>
       <button class="btn btn-secondary" id="doubleBtn" onclick="doubleDown()" disabled>Double</button>
+      <button class="btn btn-auto" id="autoPlayBtn" onclick="toggleAutoPlay()">Auto Play</button>
     </div>
     <div class="bet-display">
       <div class="bet-label">Current Bet</div>
@@ -66,6 +68,42 @@
 <div class="history-section">
   <div class="history-label">Round History</div>
   <div class="history-row" id="historyRow"></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settingsOverlay" class="settings-overlay" onclick="if(event.target===this) closeSettings()">
+  <div class="settings-panel">
+    <button class="settings-close" onclick="closeSettings()">✕</button>
+    <div class="settings-title">TABLE SETTINGS</div>
+    <div class="settings-sub">Auto play, strategy and deck options</div>
+
+    <div class="settings-group">
+      <div class="settings-row">
+        <span><b>AUTO PLAY</b><small>Play rounds automatically</small></span>
+        <button class="mini-toggle" id="autoPlaySetting" onclick="toggleSetting('autoPlay')"><i></i></button>
+      </div>
+      <div class="settings-row">
+        <span><b>AUTO LAST BET</b><small>Reuse your previous bet</small></span>
+        <button class="mini-toggle active" id="autoLastBetSetting" onclick="toggleSetting('autoLastBet')"><i></i></button>
+      </div>
+      <div class="settings-row">
+        <span><b>BEST CHOICE</b><small>Use basic blackjack strategy</small></span>
+        <button class="mini-toggle active" id="basicStrategySetting" onclick="toggleSetting('basicStrategy')"><i></i></button>
+      </div>
+    </div>
+
+    <div class="settings-selects">
+      <label>DECKS <select id="deckCountSetting" onchange="changeDeckCount(this.value)">
+        <option value="1">1 Deck</option><option value="2">2 Decks</option><option value="3">3 Decks</option><option value="4">4 Decks</option>
+        <option value="5">5 Decks</option><option value="6">6 Decks</option><option value="7">7 Decks</option><option value="8">8 Decks</option>
+      </select></label>
+      <label>AUTO ROUNDS <select id="autoRoundsSetting" onchange="autoSettings.rounds=Number(this.value)">
+        <option value="1">1 Round</option><option value="5">5 Rounds</option><option value="10">10 Rounds</option><option value="25">25 Rounds</option><option value="0">Until Stopped</option>
+      </select></label>
+    </div>
+
+    <div class="settings-note" id="settingsFeedback">Changes are saved for this session.</div>
+  </div>
 </div>
 
 <!-- CHEAT PANEL OVERLAY -->

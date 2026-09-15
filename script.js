@@ -38,16 +38,22 @@ const CHIP_UNLOCK = {
 // ─── STATE ──────────────────────────────────────────────────────────────────
 let balance    = 2500;
 let bet        = 0;
+let lastBet    = 0;
 let deck       = [];
 let playerHand = [];
 let dealerHand = [];
 let gamePhase  = 'betting'; // betting | playing | done
 let history    = [];
+let deckCount  = 3;
+let autoSettings = { autoPlay: false, autoLastBet: true, basicStrategy: true, rounds: 0 };
+let autoPlayRunning = false;
+let autoPlayRoundsLeft = 0;
 
 // ─── DECK ───────────────────────────────────────────────────────────────────
 function buildDeck() {
   const d = [];
-  for (const s of SUITS)
+  for (let n = 0; n < deckCount; n++)
+    for (const s of SUITS)
     for (const r of RANKS)
       d.push({ suit: s, rank: r });
   return d;
@@ -62,7 +68,7 @@ function shuffleDeck(d) {
 }
 
 function drawCard() {
-  if (deck.length < 15) deck = shuffleDeck([...buildDeck(), ...buildDeck(), ...buildDeck()]);
+  if (deck.length < Math.max(15, 10 * deckCount)) deck = shuffleDeck(Array.from({length: deckCount}, () => buildDeck()).flat());
   return deck.pop();
 }
 
@@ -93,12 +99,19 @@ function renderChips() {
   clearBtn.onclick = clearBet;
   row.appendChild(clearBtn);
 
+  const allInBtn = document.createElement('button');
+  allInBtn.className = 'btn btn-all-in clear-bet-btn';
+  allInBtn.textContent = 'ALL IN';
+  allInBtn.onclick = allIn;
+  row.appendChild(allInBtn);
+
   for (const chip of ALL_CHIPS) {
     const unlocked = balance >= CHIP_UNLOCK[chip.val];
+    const canAfford = unlocked && bet + chip.val <= balance;
     const div = document.createElement('div');
-    div.className = `chip ${chip.cls}${unlocked ? '' : ' locked'}`;
+    div.className = `chip ${chip.cls}${canAfford ? '' : ' locked'}`;
     div.innerHTML = `<span class="chip-val">${chip.label}</span><span class="chip-sub">${chip.sub}</span>`;
-    if (unlocked) div.onclick = () => addBet(chip.val);
+    if (canAfford) div.onclick = () => addBet(chip.val);
     row.appendChild(div);
   }
 }
@@ -114,6 +127,27 @@ function clearBet() {
   if (gamePhase !== 'betting') return;
   bet = 0;
   updateBetDisplay();
+}
+
+function allIn() {
+  if (gamePhase !== 'betting') return;
+  if (balance <= 0) {
+    flashMessage('No balance left to go all in!', 'lose');
+    return;
+  }
+
+  bet = balance;
+  lastBet = bet;
+  updateBetDisplay();
+
+  if (animationsEnabled) {
+    const el = document.getElementById('betDisplay');
+    el.classList.remove('bump');
+    void el.offsetWidth;
+    el.classList.add('bump');
+  }
+
+  flashMessage(`ALL IN — ${fmt(bet)} on the table!`, 'info');
 }
 
 // ─── DISPLAY ────────────────────────────────────────────────────────────────
@@ -156,6 +190,8 @@ function setButtons(phase) {
   document.getElementById('hitBtn').disabled    = phase !== 'playing';
   document.getElementById('standBtn').disabled  = phase !== 'playing';
   document.getElementById('doubleBtn').disabled = phase !== 'playing';
+  const autoBtn = document.getElementById('autoPlayBtn');
+  if (autoBtn) { autoBtn.textContent = autoPlayRunning ? 'Stop Auto' : 'Auto Play'; autoBtn.classList.toggle('running', autoPlayRunning); }
 }
 
 // ─── CARD RENDERING ─────────────────────────────────────────────────────────
@@ -202,10 +238,11 @@ function deal() {
   if (bet === 0)       { flashMessage('Gotta bet something first.', 'lose'); return; }
   if (bet > balance)   { flashMessage('Bet exceeds balance.', 'lose'); return; }
 
+  lastBet = bet;
   balance -= bet;
   updateBalanceDisplay();
 
-  deck       = shuffleDeck([...buildDeck(), ...buildDeck(), ...buildDeck()]);
+  deck       = shuffleDeck(Array.from({length: deckCount}, () => buildDeck()).flat());
   playerHand = [drawCard(), drawCard()];
   dealerHand = [drawCard(), { ...drawCard(), hidden: true }];
 
@@ -372,6 +409,116 @@ function addHistory(label) {
     dot.textContent = h;
     row.appendChild(dot);
   }
+}
+
+// ─── SETTINGS + AUTO PLAY ───────────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('settingsOverlay').classList.add('open');
+  syncSettingsUI();
+}
+function closeSettings() { document.getElementById('settingsOverlay').classList.remove('open'); }
+function syncSettingsUI() {
+  const map = { autoPlay: 'autoPlaySetting', autoLastBet: 'autoLastBetSetting', basicStrategy: 'basicStrategySetting' };
+  for (const [key, id] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('active', !!autoSettings[key]);
+  }
+  const decks = document.getElementById('deckCountSetting');
+  const rounds = document.getElementById('autoRoundsSetting');
+  if (decks) decks.value = String(deckCount);
+  if (rounds) rounds.value = String(autoSettings.rounds);
+}
+function toggleSetting(key) {
+  if (!(key in autoSettings) || key === 'rounds') return;
+  autoSettings[key] = !autoSettings[key];
+  if (key === 'autoPlay' && autoSettings[key]) {
+    autoPlayStart();
+  } else if (key === 'autoPlay' && !autoSettings[key]) {
+    stopAutoPlay();
+  }
+  syncSettingsUI();
+  const fb = document.getElementById('settingsFeedback');
+  if (fb) fb.textContent = `${key === 'autoLastBet' ? 'Auto last bet' : key === 'basicStrategy' ? 'Best choice' : 'Auto play'} ${autoSettings[key] ? 'enabled' : 'disabled'}.`;
+}
+function changeDeckCount(value) {
+  deckCount = Math.max(1, Math.min(8, Number(value) || 3));
+  deck = [];
+  const fb = document.getElementById('settingsFeedback');
+  if (fb) fb.textContent = `Using ${deckCount} deck${deckCount === 1 ? '' : 's'}.`;
+}
+
+function basicStrategy(player, dealerUp) {
+  const total = handValue(player);
+  const soft = player.some(c => c.rank === 'A') && total <= 21 && player.reduce((a,c) => a + (c.rank === 'A' ? 11 : ['J','Q','K'].includes(c.rank) ? 10 : Number(c.rank)), 0) === total;
+  const up = dealerUp === 'A' ? 11 : ['10','J','Q','K'].includes(dealerUp) ? 10 : Number(dealerUp);
+  if (total >= 17) return 'stand';
+  if (soft) {
+    if (total <= 17) return 'hit';
+    return 'stand';
+  }
+  if (total <= 11) return 'hit';
+  if (total >= 13 && total <= 16) return up >= 7 ? 'hit' : 'stand';
+  if (total === 12) return (up >= 4 && up <= 6) ? 'stand' : 'hit';
+  return 'hit';
+}
+
+function autoChoose() {
+  if (gamePhase !== 'playing') return;
+  if (!autoSettings.basicStrategy) { stand(); return; }
+  const dealerUp = dealerHand.find(c => !c.hidden)?.rank || '10';
+  const choice = basicStrategy(playerHand, dealerUp);
+  if (choice === 'hit') hit(); else stand();
+}
+
+function autoPlayStart() {
+  if (autoPlayRunning) return;
+  if (gamePhase !== 'betting') return;
+  autoPlayRunning = true;
+  autoPlayRoundsLeft = autoSettings.rounds;
+  setButtons(gamePhase);
+  runAutoRound();
+}
+function runAutoRound() {
+  if (!autoPlayRunning) return;
+  if (autoPlayRoundsLeft === 0 && autoSettings.rounds !== 0) { stopAutoPlay(); return; }
+  if (gamePhase !== 'betting') { setTimeout(runAutoRound, 250); return; }
+  if (autoSettings.autoLastBet && bet === 0) bet = Math.min(lastBet || 0, balance);
+  if (bet === 0) {
+    stopAutoPlay();
+    setMessage('Auto Play stopped — no last bet is available.', 'lose');
+    return;
+  }
+  if (bet > balance) {
+    if (autoSettings.autoLastBet) bet = Math.min(lastBet || 0, balance);
+    if (bet <= 0) { stopAutoPlay(); return; }
+  }
+  updateBetDisplay();
+  deal();
+  setTimeout(autoDecisionLoop, 650);
+}
+function autoDecisionLoop() {
+  if (!autoPlayRunning) return;
+  if (gamePhase === 'playing') {
+    autoChoose();
+    if (gamePhase === 'playing') setTimeout(autoDecisionLoop, 650);
+  } else if (gamePhase === 'done') {
+    if (autoSettings.rounds !== 0) autoPlayRoundsLeft--;
+    setTimeout(runAutoRound, 2100);
+  } else {
+    setTimeout(runAutoRound, 250);
+  }
+}
+function stopAutoPlay() {
+  autoPlayRunning = false;
+  autoSettings.autoPlay = false;
+  syncSettingsUI();
+  setButtons(gamePhase);
+}
+function toggleAutoPlay() {
+  if (autoPlayRunning) { stopAutoPlay(); setMessage('Auto Play stopped.', 'info'); return; }
+  autoSettings.autoPlay = true;
+  syncSettingsUI();
+  autoPlayStart();
 }
 
 // ─── CHEAT PANEL ────────────────────────────────────────────────────────────
@@ -615,3 +762,4 @@ updateBalanceDisplay();
 updateBetDisplay();
 setButtons('betting');
 renderHands();
+syncSettingsUI();
