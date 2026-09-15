@@ -923,3 +923,25 @@ header {
   .settings-open { position:static; transform:none; margin-right:8px; }
   .settings-selects { grid-template-columns:1fr; }
 }
+
+/* Dynamically generated high-value chips */
+[class^="chip-dynamic-"], [class*=" chip-dynamic-"] {
+  font-weight: 800;
+}
+.chips-row {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+/* Worded value shown underneath each chip */
+.chip small {
+  display: block;
+  max-width: 92px;
+  margin: 2px auto 0;
+  font-size: 7px;
+  line-height: 1.05;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  opacity: .9;
+}

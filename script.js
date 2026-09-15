@@ -2,29 +2,78 @@
 const SUITS = ['♠','♥','♦','♣'];
 const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
-const ALL_CHIPS = [
-  { val: 1,          label: '1',    cls: 'chip-1',       sub: 'WHITE' },
-  { val: 10,         label: '10',   cls: 'chip-10',      sub: 'BLUE' },
-  { val: 50,         label: '50',   cls: 'chip-50',      sub: 'GREEN' },
-  { val: 100,        label: '100',  cls: 'chip-100',     sub: 'RED' },
-  { val: 500,        label: '500',  cls: 'chip-500',     sub: 'PURPLE' },
-  { val: 1000,       label: '1K',   cls: 'chip-1000',    sub: 'GOLD' },
-  { val: 5000,       label: '5K',   cls: 'chip-5000',    sub: 'PINK' },
-  { val: 25000,      label: '25K',  cls: 'chip-25000',   sub: 'CROWN' },
-  { val: 100000,     label: '100K', cls: 'chip-100k',    sub: 'BLACK' },
-  { val: 500000,     label: '500K', cls: 'chip-500k',    sub: 'SAPPHIRE' },
-  { val: 1000000,    label: '1M',   cls: 'chip-1m',      sub: 'MILLION' },
-  { val: 5000000,    label: '5M',   cls: 'chip-5m',      sub: 'PLATINUM' },
-  { val: 10000000,   label: '10M',  cls: 'chip-10m',     sub: 'ROYAL' },
-  { val: 50000000,   label: '50M',  cls: 'chip-50m',     sub: 'DIAMOND' },
-  { val: 100000000,  label: '100M', cls: 'chip-100m',    sub: 'ELITE' },
-  { val: 500000000,  label: '500M', cls: 'chip-500m',    sub: 'ULTRA' },
-  { val: 1000000000, label: '1B',   cls: 'chip-1b',      sub: 'BILLION' },
-  { val: 5000000000, label: '5B',   cls: 'chip-5b',      sub: 'EMPEROR' },
-  { val: 10000000000,label: '10B',  cls: 'chip-10b',     sub: 'TITAN' },
-  { val: 50000000000,label: '50B',  cls: 'chip-50b',     sub: 'OMEGA' },
-  { val: 100000000000,label: '100B', cls: 'chip-100b',   sub: 'REX' },
+const CHIP_VALUES = [
+  1, 5, 10, 25, 50, 100, 250, 500,
+  1000, 2500, 5000, 10000, 25000, 50000,
+  100000, 250000, 500000, 1000000, 2500000,
+  5000000, 10000000, 25000000, 50000000,
+  100000000, 250000000, 500000000, 1000000000,
+  2500000000, 5000000000, 10000000000, 25000000000,
+  50000000000, 100000000000, 250000000000,
+  500000000000, 1000000000000
 ];
+
+function formatChipLabel(value) {
+  if (value >= 1e12) return `${value / 1e12}T`;
+  if (value >= 1e9) return `${value / 1e9}B`;
+  if (value >= 1e6) return `${value / 1e6}M`;
+  if (value >= 1e3) return `${value / 1e3}K`;
+  return String(value);
+}
+
+function moneyWords(value) {
+  value = Math.floor(Number(value) || 0);
+  if (value === 0) return 'Zero dollars';
+
+  const ones = ['','one','two','three','four','five','six','seven','eight','nine',
+    'ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen',
+    'seventeen','eighteen','nineteen'];
+  const tens = ['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+
+  function underThousand(n) {
+    let out = '';
+    if (n >= 100) {
+      out += ones[Math.floor(n / 100)] + ' hundred';
+      n %= 100;
+      if (n) out += ' ';
+    }
+    if (n >= 20) {
+      out += tens[Math.floor(n / 10)];
+      n %= 10;
+      if (n) out += '-' + ones[n];
+    } else if (n > 0) {
+      out += ones[n];
+    }
+    return out;
+  }
+
+  const scales = [[1e12,'trillion'],[1e9,'billion'],[1e6,'million'],[1e3,'thousand'],[1,'']];
+  let remaining = value;
+  const parts = [];
+
+  for (const [scale, name] of scales) {
+    if (remaining >= scale) {
+      const amount = Math.floor(remaining / scale);
+      remaining %= scale;
+      parts.push(underThousand(amount) + (name ? ' ' + name : ''));
+    }
+  }
+  return parts.join(' ') + ' dollars';
+}
+
+function buildChipList(maxMoney = Infinity) {
+  const values = CHIP_VALUES.filter(v => v <= Math.max(1, maxMoney));
+  if (!values.length) values.push(1);
+
+  return values.map((val, i) => ({
+    val,
+    label: formatChipLabel(val),
+    cls: `chip-dynamic-${i}`,
+    sub: val >= 1e9 ? 'REX' : 'CHIP'
+  }));
+}
+
+let ALL_CHIPS = buildChipList(balance || Infinity);
 
 // chip unlocks when balance >= threshold
 const CHIP_UNLOCK = {
@@ -111,6 +160,7 @@ function renderChips() {
     const div = document.createElement('div');
     div.className = `chip ${chip.cls}${canAfford ? '' : ' locked'}`;
     div.innerHTML = `<span class="chip-val">${chip.label}</span><span class="chip-sub">${chip.sub}</span>`;
+      <small>${moneyWords(chip.val)}</small>
     if (canAfford) div.onclick = () => addBet(chip.val);
     row.appendChild(div);
   }
@@ -137,17 +187,42 @@ function allIn() {
   }
 
   bet = balance;
-  lastBet = bet;
   updateBetDisplay();
 
   if (animationsEnabled) {
     const el = document.getElementById('betDisplay');
-    el.classList.remove('bump');
-    void el.offsetWidth;
-    el.classList.add('bump');
+    if (el) {
+      el.classList.remove('bump');
+      void el.offsetWidth;
+      el.classList.add('bump');
+    }
   }
 
   flashMessage(`ALL IN — ${fmt(bet)} on the table!`, 'info');
+}
+
+function toggleAutoAllIn() {
+  autoAllInEnabled = !autoAllInEnabled;
+  const toggle = document.getElementById('autoAllInToggle');
+  if (toggle) toggle.classList.toggle('active', autoAllInEnabled);
+
+  if (autoAllInEnabled && gamePhase === 'betting' && balance > 0) {
+    allIn();
+  }
+}
+
+function applyAutoBet() {
+  if (gamePhase !== 'betting' || balance <= 0) return;
+
+  if (autoAllInEnabled) {
+    allIn();
+    return;
+  }
+
+  if (typeof autoLastBetEnabled !== 'undefined' && autoLastBetEnabled && lastBet > 0) {
+    bet = Math.min(lastBet, balance);
+    updateBetDisplay();
+  }
 }
 
 // ─── DISPLAY ────────────────────────────────────────────────────────────────
@@ -531,6 +606,7 @@ let cheatActive = {
   revealDealer: false
 };
 let animationsEnabled = true;
+let autoAllInEnabled = false;
 
 // Konami Code
 document.addEventListener('keydown', e => {
