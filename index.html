@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REX BLACKJACK</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="brand">REX BLACKJACK</div>
+  <div class="balance-display">
+    <div class="balance-label">Balance</div>
+    <div class="balance-amount" id="balanceDisplay">$2,500</div>
+  </div>
+</header>
+
+<div class="table-wrap">
+
+  <!-- DEALER HAND -->
+  <div class="hand-zone">
+    <div style="display:flex;align-items:center;gap:0;">
+      <span class="hand-label">Dealer</span>
+      <span class="hand-score" id="dealerScore">-</span>
+    </div>
+    <div class="cards" id="dealerCards"></div>
+  </div>
+
+  <!-- MESSAGE -->
+  <div class="message-bar info" id="messageBar">Place your bet to start.</div>
+
+  <!-- ACTIONS -->
+  <div class="action-zone">
+    <div class="btn-group" id="gameButtons">
+      <button class="btn btn-primary"   id="dealBtn"   onclick="deal()">Deal</button>
+      <button class="btn btn-secondary" id="hitBtn"    onclick="hit()"        disabled>Hit</button>
+      <button class="btn btn-secondary" id="standBtn"  onclick="stand()"      disabled>Stand</button>
+      <button class="btn btn-secondary" id="doubleBtn" onclick="doubleDown()" disabled>Double</button>
+    </div>
+    <div class="bet-display">
+      <div class="bet-label">Current Bet</div>
+      <div class="bet-amount" id="betDisplay">$0</div>
+    </div>
+  </div>
+
+  <!-- PLAYER HAND -->
+  <div class="player-zone">
+    <div style="display:flex;align-items:center;gap:0;">
+      <span class="hand-label">You</span>
+      <span class="hand-score" id="playerScore">-</span>
+    </div>
+    <div class="cards" id="playerCards"></div>
+  </div>
+
+</div>
+
+<!-- CHIPS -->
+<div class="chips-section">
+  <div class="chips-label">Chips — click to bet</div>
+  <div class="chips-row" id="chipsRow"></div>
+</div>
+
+<!-- HISTORY -->
+<div class="history-section">
+  <div class="history-label">Round History</div>
+  <div class="history-row" id="historyRow"></div>
+</div>
+
+<!-- CHEAT PANEL OVERLAY -->
+<div id="cheatOverlay">
+  <div id="cheatPanel">
+    <button class="cheat-close" onclick="closeCheat()">✕</button>
+    <div class="cheat-title">⚠ CHEAT CONSOLE</div>
+    <div class="cheat-sub">Konami unlocked · Eyes off the table</div>
+
+    <div class="cheat-grid">
+      <button class="cheat-btn" onclick="cheat_addMoney(10000)">+$10,000<span class="cheat-desc">stack the bank</span></button>
+      <button class="cheat-btn" onclick="cheat_addMoney(100000)">+$100,000<span class="cheat-desc">big bank</span></button>
+      <button class="cheat-btn" onclick="cheat_addMoney(1000000)">+$1,000,000<span class="cheat-desc">millionaire mode</span></button>
+      <button class="cheat-btn" onclick="cheat_setMoney(999999999)">MAX BALANCE<span class="cheat-desc">infinite wealth</span></button>
+      <button class="cheat-btn" onclick="cheat_forceWin()">FORCE WIN<span class="cheat-desc">next hand auto-wins</span></button>
+      <button class="cheat-btn" onclick="cheat_forceBlackjack()">FORCE BJ<span class="cheat-desc">next hand = blackjack</span></button>
+      <button class="cheat-btn" onclick="cheat_dealerBust()">DEALER BUST<span class="cheat-desc">dealer draws till bust</span></button>
+      <button class="cheat-btn" onclick="cheat_revealDealer()">SEE HOLE CARD<span class="cheat-desc">peek dealer's hidden</span></button>
+      <button class="cheat-btn" onclick="cheat_clearHistory()">WIPE HISTORY<span class="cheat-desc">clean record</span></button>
+      <button class="cheat-btn red-cheat" onclick="cheat_reset()">HARD RESET<span class="cheat-desc">back to $2,500</span></button>
+    </div>
+
+    <div class="cheat-custom-row">
+      <input class="cheat-input" id="cheatAmountInput" type="number" placeholder="CUSTOM $" min="1">
+      <button class="cheat-btn" style="flex-shrink:0;padding:10px 14px;" onclick="cheat_customAdd()">ADD</button>
+    </div>
+
+    <div class="cheat-feedback" id="cheatFeedback"></div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
